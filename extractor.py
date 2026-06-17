@@ -2,57 +2,29 @@ import os
 import sys
 import io
 import requests as req
-from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.drawing.image import Image as XLImage
 from openpyxl.utils import get_column_letter
 from urllib.parse import urljoin
 import tempfile
+import warnings
+warnings.filterwarnings('ignore')
 
 def get_html(url):
-    print(f"[*] Fetching dynamic data from: {url} (Waiting for JS to load...)")
-    
-    # Method 1: Try Playwright (for JS-heavy/dynamic sites)
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                viewport={"width": 1280, "height": 800},
-                ignore_https_errors=True,
-                java_script_enabled=True,
-            )
-            page = context.new_page()
-            # Try networkidle first, fallback to domcontentloaded
-            try:
-                page.goto(url, wait_until="networkidle", timeout=30000)
-            except:
-                page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(3000)
-            html = page.content()
-            browser.close()
-            print("[+] Playwright fetch successful.")
-            return html
-    except Exception as e:
-        print(f"[!] Playwright failed ({e}), trying simple HTTP fetch...")
-
-    # Method 2: Fallback to simple requests (for static sites)
+    print(f"[*] Fetching: {url}")
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
         }
         response = req.get(url, headers=headers, timeout=15, verify=False)
         response.raise_for_status()
-        print("[+] Simple HTTP fetch successful.")
+        print("[+] Fetch successful.")
         return response.text
     except Exception as e:
-        print(f"[-] Both methods failed: {e}")
+        print(f"[-] Fetch failed: {e}")
         return None
 
 
